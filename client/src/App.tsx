@@ -1,26 +1,55 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, { FC, useContext, useEffect, useState } from 'react'
+import LoginForm from './components/LoginForm'
+import { Context } from './index'
+import { observer } from 'mobx-react-lite'
+import { IUser } from './models/IUser'
+import UserService from './service/UserService'
 
-function App() {
+const App: FC = () => {
+  const { store } = useContext(Context)
+  const [users, setUsers] = useState<IUser[]>([])
+
+  useEffect(() => {
+    if (localStorage.getItem('token')) {
+      store.checkAuth()
+    }
+  }, [])
+
+  const getUsers = async () => {
+    try {
+      const response = await UserService.fetchUsers()
+      setUsers(response.data)
+    } catch (e) {
+      console.log(e)
+    }
+  }
+
+  if (store.isLoading) {
+    return <h3>Loading...</h3>
+  }
+
+  if (!store.isAuth) {
+    return <LoginForm />
+  }
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div>
+      <h1>
+        {store.isAuth
+          ? `User authorized ${store.user.email}`
+          : 'Login or Register'}
+      </h1>
+      <button onClick={() => store.logout()}>Logout</button>
+      <div>
+        <button onClick={getUsers}>Get users</button>
+      </div>
+      <ul>
+        {users.map(user => (
+          <li>{user.email}</li>
+        ))}
+      </ul>
     </div>
-  );
+  )
 }
 
-export default App;
+export default observer(App)
